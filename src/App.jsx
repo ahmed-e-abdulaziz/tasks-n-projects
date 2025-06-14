@@ -6,58 +6,101 @@ import ProjectsList from "./components/ProjectsList";
 import Project from "./components/Project";
 
 function App() {
-  const [addProject, setAddProject] = useState(false);
-  function toggleCreateNewProject() {
-    setAddProject(true);
-  }
+  const [projectState, setProjectState] = useState({
+    selectedProjectId: undefined,
+    projects: [],
+  });
 
-  const [projects, setProjects] = useState([]);
-  function handleAddProject(project) {
-    setProjects((projects) => {
-      handleSelectProject(project);
-      return [...projects, project];
+  function addTask(projectId, task) {
+    setProjectState((prevState) => {
+      let p = prevState.projects.find((p) => (p.id = projectId));
+      if (!p.tasks) {
+        p.tasks = [];
+      }
+      p.tasks = [...p.tasks, task];
+      return { ...prevState };
     });
   }
 
-  const [selectedProject, setSelectedProject] = useState();
-  function handleSelectProject(project) {
-    setAddProject(false);
-    setSelectedProject(project);
-    console.log(project);
+  function deleteTask(task) {
+    setProjectState((project) => {
+      project.tasks = project.tasks.filter((t) => t === task);
+    });
+  }
+
+  function toggleCreateNewProject() {
+    setProjectState((prevState) => {
+      return {
+        ...prevState,
+        selectedProjectId: null,
+      };
+    });
+  }
+
+  function handleAddProject(project) {
+    setProjectState((prevState) => {
+      project.id = Math.random();
+
+      return {
+        ...prevState,
+        selectedProjectId: project.id,
+        projects: [...prevState.projects, project],
+      };
+    });
+  }
+
+  function cancelAdd() {
+    setProjectState((prevState) => {
+      return {
+        ...prevState,
+        selectedProjectId: undefined,
+      };
+    });
+  }
+
+  function handleSelectProject(projectId) {
+    setProjectState((prevState) => {
+      return { ...prevState, selectedProjectId: projectId };
+    });
+  }
+
+  let content;
+
+  if (projectState.selectedProjectId === undefined) {
+    content = <NoProjectSelected onClick={toggleCreateNewProject} />;
+  } else if (projectState.selectedProjectId === null) {
+    content = <AddProject addProject={handleAddProject} onCancel={cancelAdd} />;
+  } else {
+    content = (
+      <Project
+        project={projectState.projects.find(
+          (p) => (p.id = projectState.selectedProjectId)
+        )}
+        addTask={addTask}
+        deleteTask={deleteTask}
+      />
+    );
   }
 
   return (
     <main className="h-screen my-8 flex gap-8">
-      <aside className="w-1/4 px-8 py-16 bg-stone-900 text-stone-50 rounded-r-xl">
+      <aside className="w-1/3 px-8 py-16 bg-stone-900 text-stone-50 rounded-r-xl md:w-72">
+        <h2 className="mb-8 md:text-xl font-bold uppercase text-stone-200">
+          Your Projects
+        </h2>
+        <div>
+          <Button onClick={toggleCreateNewProject}>+ Add Project</Button>
+        </div>
         <ul>
-          <li className="my-4">
-            <strong className="text-xl uppercase text-stone-100">
-              Your Projects
-            </strong>
-          </li>
-          <li>
-            <Button onClick={toggleCreateNewProject}>+ Add Project</Button>
-          </li>
-          {projects.length > 0 && (
+          {projectState.projects.length > 0 && (
             <ProjectsList
-              projects={projects}
+              projects={projectState.projects}
               selectProject={handleSelectProject}
             />
           )}
         </ul>
       </aside>
-      {projects.length === 0 && !addProject && (
-        <NoProjectSelected onClick={toggleCreateNewProject} />
-      )}
-      {addProject && (
-        <AddProject addProject={(project) => handleAddProject(project)} />
-      )}
-      {!!selectedProject && (
-        <Project
-          project={selectedProject}
-          setSelectedProject={setSelectedProject}
-        />
-      )}
+      {content}
     </main>
   );
 }
